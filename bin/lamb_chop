@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/opt/local/bin/ruby 
 
 begin
   require 'rubygems' 
@@ -22,12 +22,26 @@ class MTZ_2_CNS < FXMainWindow
     show(PLACEMENT_SCREEN) 
   end 
 
+  def build_menu_bar
+    menu_bar = FXMenuBar.new(self)
+    file_menu_pane = FXMenuPane.new(menu_bar)
+    file_exit_command = FXMenuCommand.new(file_menu_pane, "Quit")
+    file_menu_title = FXMenuTitle.new(menu_bar, "File", :popupMenu => file_menu_pane)
+    file_exit_command.connect(SEL_COMMAND) do
+      exit
+    end
+  end
+
   def add_buttons_and_shit
+    build_menu_bar
+
     label = FXLabel.new(self, "Pick your MTZ file plz", :opts => JUSTIFY_LEFT)
+
     mtz_selection_button = FXButton.new(self, "Choose File")
     mtz_selection_button.connect(SEL_COMMAND) do 
       show_file_selection_dialog
     end
+
     go_button = FXButton.new(self, "GO") 
     go_button.connect(SEL_COMMAND) do
       execute_program

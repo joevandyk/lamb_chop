@@ -1,0 +1,7 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/lamb_chop
+lib/lamb_chop.rb
+test/test_lamb_chop.rb

@@ -42,9 +42,23 @@ class MTZ_2_CNS < FXMainWindow
   end
 
   def get_job_title_from_mtz mtz_filename
-    output = `#{ENV['CCP4']}/etc/mtzdmp #{mtz_filename} -e`
-    match_data = output.match(/F_([^ ]*)/)
+    header = get_header_from_mtz mtz_filename
+    match_data = header.match(/F_([^ ]*)/)
     match_data[1] if match_data
+  end
+
+  def get_free_r_selected_from_mtz mtz_filename
+    header = get_header_from_mtz mtz_filename
+    if header.include?("FreeR_flag")
+      " FREE=FreeR_flag "
+    else
+      return ""
+    end
+
+  end
+
+  def get_header_from_mtz mtz_filename
+    `#{ENV['CCP4']}/etc/mtzdmp #{mtz_filename} -e`
   end
 
   def error message, title="ERROR"
@@ -55,12 +69,16 @@ class MTZ_2_CNS < FXMainWindow
     FXMessageBox.information self, MBOX_OK, title, message
   end
 
+  def build_options mtz_filename
+    job_title = get_job_title_from_mtz(mtz_filename)
+    free_r_selected = get_free_r_selected_from_mtz(mtz_filename)
+    "labin FP=F_#{job_title} SIGFP=SIGF_#{job_title} #{free_r_selected}\n"
+  end
+
   def execute_program
     error("No MTZ file selected") and return unless File.exist?(@mtz_filename)
     input_filename = @mtz_filename
     output_filename = @mtz_filename + ".cv"
-
-    job_title = get_job_title_from_mtz(@mtz_filename)
 
     program = "#{MTZ2VARIOUS} hklin #{input_filename}  hklout #{output_filename}"
 
@@ -71,8 +89,9 @@ class MTZ_2_CNS < FXMainWindow
     command = IO.popen(program, "w+")
     output = ""
     if !command.closed?
+      options = build_options(@mtz_filename)
       command << "OUTPUT CNS\n"
-      command << "labin  FP=F_#{job_title} SIGFP=SIGF_#{job_title} FREE=FreeR_flag\n"
+      command << options
       command << "end\n"
       output = command.read
       command.close
@@ -83,6 +102,7 @@ class MTZ_2_CNS < FXMainWindow
       @output_text.text = output
     else
       error "IT DIDN'T WORK"
+      @output_text.text = output
     end
 
   end

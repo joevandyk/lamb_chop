@@ -1,15 +1,19 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
+begin
+  require 'rubygems' 
+rescue LoadError 
+  nil
+end
+
 require 'fox16' 
 include Fox 
-
 
 class MTZ_2_CNS < FXMainWindow 
   MTZ2VARIOUS = "#{ENV['CCP4_BIN']}/mtz2various"
   def initialize(app) 
     @mtz_filename = ""
-    super(app, "Preparing MTZ for CNS", :width => 500, :height => 360) 
+    super(app, "Lamb Chop by Canned Sheep LLC", :width => 500, :height => 360) 
     add_buttons_and_shit
   end 
 

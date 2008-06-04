@@ -1,4 +1,4 @@
-#!/opt/local/bin/ruby 
+#!/opt/local/bin/ruby
 
 begin
   require 'rubygems' 
@@ -9,45 +9,80 @@ end
 require 'fox16' 
 include Fox 
 
-class MTZ_2_CNS < FXMainWindow 
+class ShutterItem < FXShutterItem
+  def initialize(p, text, icon=nil, opts=0)
+    super(p, text, icon, opts|LAYOUT_FILL_X|LAYOUT_TOP|LAYOUT_LEFT, :padding => 10, :hSpacing => 10, :vSpacing => 10)
+    button.padTop = 2
+    button.padBottom = 2
+  end
+end
+
+class ShutterButton < FXButton
+  def initialize(p, txt, ic=nil)
+    super(p, txt, ic, :opts => BUTTON_TOOLBAR|TEXT_BELOW_ICON|FRAME_THICK|FRAME_RAISED|LAYOUT_FILL_X|LAYOUT_TOP|LAYOUT_LEFT)
+    self.backColor = p.backColor
+    self.textColor = FXRGB(255, 255, 255)
+  end
+end
+
+class ShutterWindow < FXMainWindow
+
+  # This is just a helper function that loads an ICO file from disk
+  # and constructs and returns a ICO icon object.
+
+
+  def initialize(app)
+    # Invoke base class initialize first
+    super(app, "Look Out!", :opts => DECOR_ALL, :width => 600, :height => 600)
+
+    # Menubar along the top
+    menubar = FXMenuBar.new(self, LAYOUT_SIDE_TOP|LAYOUT_FILL_X)
+
+    # File menu
+    filemenu = FXMenuPane.new(self)
+    FXMenuCommand.new(filemenu, "Quit\tCtl-Q", nil, getApp(), FXApp::ID_QUIT)
+    FXMenuTitle.new(menubar, "&File", nil, filemenu)
+
+    # Edit menu
+    editmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "&Edit", nil, editmenu)
+
+    # View menu
+    viewmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "&View", nil, viewmenu)
+
+    # Favorites menu
+    favmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "Fav&orites", nil, favmenu)
+
+    # Tools menu
+    toolsmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "&Tools", nil, toolsmenu)
+
+    # Actions menu
+    actionsmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "&Actions", nil, actionsmenu)
+
+    # Help menu
+    helpmenu = FXMenuPane.new(self)
+    FXMenuTitle.new(menubar, "&Help", nil, helpmenu)
+
+    # Status bar along the bottom
+    status = FXStatusBar.new(self,
+                             LAYOUT_SIDE_BOTTOM|LAYOUT_FILL_X|STATUSBAR_WITH_DRAGCORNER)
+
+    # Main contents area is split left-to-right
+  end
+
+  def create
+    super
+    @shutter.width = 1.25*@shutter.width
+    show(PLACEMENT_SCREEN)
+  end
+end
+
+class MTZ_2_CNS < FXScrollWindow
   MTZ2VARIOUS = "#{ENV['CCP4_BIN']}/mtz2various"
-  def initialize(app) 
-    @mtz_filename = ""
-    super(app, "Lamb Chop by Canned Sheep LLC", :width => 500, :height => 360) 
-    add_buttons_and_shit
-  end 
-
-  def create 
-    super 
-    show(PLACEMENT_SCREEN) 
-  end 
-
-  def build_menu_bar
-    menu_bar = FXMenuBar.new(self)
-    file_menu_pane = FXMenuPane.new(menu_bar)
-    file_exit_command = FXMenuCommand.new(file_menu_pane, "Quit")
-    file_menu_title = FXMenuTitle.new(menu_bar, "File", :popupMenu => file_menu_pane)
-    file_exit_command.connect(SEL_COMMAND) do
-      exit
-    end
-  end
-
-  def add_buttons_and_shit
-    build_menu_bar
-
-    label = FXLabel.new(self, "Pick your MTZ file plz", :opts => JUSTIFY_LEFT)
-
-    mtz_selection_button = FXButton.new(self, "Choose File")
-    mtz_selection_button.connect(SEL_COMMAND) do 
-      show_file_selection_dialog
-    end
-
-    go_button = FXButton.new(self, "GO") 
-    go_button.connect(SEL_COMMAND) do
-      execute_program
-    end
-    @output_text = FXText.new(self, :opts => LAYOUT_FILL)
-  end
 
   def show_file_selection_dialog
     dialog = FXFileDialog.new(self, "Open MTZ file")
@@ -78,6 +113,91 @@ class MTZ_2_CNS < FXMainWindow
   def get_header_from_mtz mtz_filename
     `#{ENV['CCP4']}/etc/mtzdmp #{mtz_filename} -e`
   end
+
+  def initialize p
+    super p, :opts => LAYOUT_FILL
+    m = FXMatrix.new(self, :opts => LAYOUT_FILL|MATRIX_BY_COLUMNS)
+    label = FXLabel.new(m, "Pick your MTZ file plz", :opts => JUSTIFY_LEFT)
+
+    mtz_selection_button = FXButton.new(m, "Choose File")
+    mtz_selection_button.connect(SEL_COMMAND) do 
+      show_file_selection_dialog
+    end
+
+    go_button = FXButton.new(m, "GO") 
+    go_button.connect(SEL_COMMAND) do
+      execute_program
+    end
+    @output_text = FXText.new(m, :opts => LAYOUT_FILL_X)
+  end
+
+end
+
+
+class LambChop < FXMainWindow 
+  def loadIcon(filename)
+    begin
+      filename = File.join("icons", filename)
+      icon = nil
+      File.open(filename, "rb") do |f|
+        icon = FXICOIcon.new(getApp(), f.read)
+      end
+      icon
+    rescue
+      raise RuntimeError, "Couldn't load icon: #{filename}"
+    end
+  end
+  def initialize(app) 
+    @mtz_filename = ""
+    super(app, "Lamb Chop by Canned Sheep LLC", :width => 500, :height => 360) 
+    add_buttons_and_shit
+  end 
+
+  def create 
+    super 
+    show(PLACEMENT_SCREEN) 
+  end 
+
+  def build_menu_bar
+    menu_bar = FXMenuBar.new(self)
+    file_menu_pane = FXMenuPane.new(menu_bar)
+    file_exit_command = FXMenuCommand.new(file_menu_pane, "Quit")
+    file_menu_title = FXMenuTitle.new(menu_bar, "File", :popupMenu => file_menu_pane)
+    file_exit_command.connect(SEL_COMMAND) do
+      exit
+    end
+  end
+
+  def add_buttons_and_shit
+    build_menu_bar
+
+
+    splitter = FXSplitter.new(self, (LAYOUT_SIDE_TOP|LAYOUT_FILL_X|
+                                     LAYOUT_FILL_Y|SPLITTER_TRACKING))
+
+# Shutter area on the left
+    @shutter = FXShutter.new(splitter,
+                             :opts => FRAME_SUNKEN|LAYOUT_FILL_X|LAYOUT_FILL_Y,
+                             :padding => 0, :hSpacing => 0, :vSpacing => 0)
+
+
+    shutterItem = ShutterItem.new(@shutter, "Steps", nil, LAYOUT_FILL_Y)
+    ShutterButton.new(shutterItem.content, "MTZ 2 CNS", nil).connect(SEL_COMMAND) { @switcher.current = 0 }
+    ShutterButton.new(shutterItem.content, "Uniquify", nil).connect(SEL_COMMAND) { @switcher.current = 1 }
+    ShutterButton.new(shutterItem.content, "Phaser Shit", nil).connect(SEL_COMMAND) { @switcher.current = 2 }
+
+    # Right pane is a switcher
+    # For a real application, each panel in the switcher would have real, working contents...
+    @switcher = FXSwitcher.new(splitter,
+                               FRAME_SUNKEN|LAYOUT_FILL_X|LAYOUT_FILL_Y, :padding => 0)
+    mtz = MTZ_2_CNS.new @switcher
+
+    FXLabel.new(@switcher,
+                "Lookout Today!\n\n#{}", nil, LAYOUT_FILL_X|LAYOUT_FILL_Y)
+    FXLabel.new(@switcher, "Inbox\n\n#{}", nil, LAYOUT_FILL_X|LAYOUT_FILL_Y)
+    FXLabel.new(@switcher, "Inbox\n\n#{}", nil, LAYOUT_FILL_X|LAYOUT_FILL_Y)
+  end
+
 
   def error message, title="ERROR"
     FXMessageBox.error self, MBOX_OK, title, message
@@ -129,7 +249,7 @@ end
 
 if __FILE__ == $0 
   FXApp.new do |app| 
-    MTZ_2_CNS.new(app) 
+    LambChop.new(app) 
     app.create 
     app.run 
   end 
